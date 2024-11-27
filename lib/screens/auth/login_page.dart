@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_proyek_kel02/utils/auth_preferences.dart';
-import 'package:flutter_proyek_kel02/database/user_db.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'register_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_proyek_kel02/screens/auth/register_page.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,29 +8,36 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   Future<void> _login() async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Username dan password tidak boleh kosong')),
+        SnackBar(content: Text('Email dan password tidak boleh kosong')),
       );
       return;
     }
 
-    final user = await UserDB().getUser(username, password);
-    if (user != null) {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', user['username']);
-      await AuthPreferences.saveLoginStatus(true);
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      // Ambil username dari displayName
+      final user = userCredential.user;
+      final username = user?.displayName ?? "Tidak ada username";
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login gagal! Periksa username dan password')),
+        SnackBar(content: Text('Login berhasil! Selamat datang, $username')),
+      );
+
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login gagal! Periksa email dan password')),
       );
     }
   }
@@ -49,7 +54,6 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: 40),
-                // Ilustrasi Placeholder
                 Center(
                   child: Image.asset(
                     'assets/images/login_illustration.png',
@@ -57,36 +61,35 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 30),
-                // Judul
                 Text(
                   'Selamat Datang!',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF90AF17),
-                  ),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF90AF17)),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Masukkan username dan password Anda untuk melanjutkan.',
+                  'Masukkan email dan password Anda untuk melanjutkan.',
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 30),
-                // Input Username
                 TextField(
-                  controller: _usernameController,
+                  controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Username',
-                    prefixIcon: Icon(Icons.person, color: Color(0xFF90AF17)),
+                    labelText: 'Email',
+                    prefixIcon: Icon(
+                      Icons.email,
+                      color: Color(0xFF90AF17),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
                 SizedBox(height: 20),
-                // Input Password
                 TextField(
                   controller: _passwordController,
                   decoration: InputDecoration(
@@ -99,7 +102,6 @@ class _LoginPageState extends State<LoginPage> {
                   obscureText: true,
                 ),
                 SizedBox(height: 30),
-                // Tombol Login
                 ElevatedButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(
@@ -115,7 +117,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 20),
-                // Tombol Daftar
                 Center(
                   child: GestureDetector(
                     onTap: () async {

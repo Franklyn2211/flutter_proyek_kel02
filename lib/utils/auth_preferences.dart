@@ -1,16 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthPreferences {
   static const String _isLoggedInKey = 'isLoggedIn';
-  static const String _usernameKey = 'username';
 
   /// Simpan status login
-  static Future<void> saveLoginStatus(bool isLoggedIn, {String? username}) async {
+  static Future<void> saveLoginStatus(bool isLoggedIn) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isLoggedInKey, isLoggedIn);
-    if (username != null) {
-      await prefs.setString(_usernameKey, username);
-    }
   }
 
   /// Ambil status login
@@ -19,16 +16,22 @@ class AuthPreferences {
     return prefs.getBool(_isLoggedInKey) ?? false;
   }
 
-  /// Ambil username yang tersimpan (opsional)
-  static Future<String?> getUsername() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_usernameKey);
+  /// Ambil user ID yang sedang login (Firebase UID)
+  static Future<String?> getUserId() async {
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.uid;
   }
 
-  /// Hapus semua data login (Logout)
+  /// Ambil email pengguna yang sedang login
+  static Future<String?> getUserEmail() async {
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.email;
+  }
+
+  /// Hapus data login (Logout)
   static Future<void> clearLoginData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_isLoggedInKey);
-    await prefs.remove(_usernameKey);
+    await FirebaseAuth.instance.signOut(); // Logout dari Firebase
   }
 }

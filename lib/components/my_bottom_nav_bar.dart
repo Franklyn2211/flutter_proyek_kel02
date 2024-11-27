@@ -15,9 +15,7 @@ class MyBottomNavBar extends StatelessWidget {
     double defaultSize = SizeConfig.defaultSize;
     return Consumer<NavItems>(
       builder: (context, navItems, child) => Container(
-        padding: EdgeInsets.symmetric(horizontal: defaultSize * 3), //30
-        // just for demo
-        // height: 80,
+        padding: EdgeInsets.symmetric(horizontal: defaultSize * 2), // Spasi kiri/kanan
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -30,38 +28,66 @@ class MyBottomNavBar extends StatelessWidget {
         ),
         child: SafeArea(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-              navItems.items.length,
-              (index) => buildIconNavBarItem(
-                isActive: navItems.selectedIndex == index ? true : false,
-                icon: navItems.items[index].icon,
-                press: () {
-                  navItems.changeNavIndex(index: index);
-                  // maybe destinationChacker is not needed in future because then all of our nav items have destination
-                  // But Now if we click those which dont have destination then it shows error
-                  // And this fix this problem
-                  if (navItems.items[index].destinationChecker())
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            navItems.items[index].destination!,
-                      ),
-                    );
-                },
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // Ikon di sisi kiri
+              Row(
+                children: List.generate(
+                  2, // Ikon pertama dan kedua
+                  (index) => buildIconNavBarItem(
+                    isActive: navItems.selectedIndex == index ? true : false,
+                    icon: navItems.items[index].icon,
+                    press: () {
+                      navItems.changeNavIndex(index: index);
+                      if (navItems.items[index].destinationChecker()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                navItems.items[index].destination!,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
               ),
-            ),
+              // Spacer untuk memberi ruang bagi tombol tambah
+              SizedBox(width: defaultSize * 4),
+              // Ikon di sisi kanan
+              Row(
+                children: List.generate(
+                  2, // Ikon ketiga dan keempat
+                  (index) => buildIconNavBarItem(
+                    isActive: navItems.selectedIndex == index + 2 ? true : false,
+                    icon: navItems.items[index + 2].icon,
+                    press: () {
+                      navItems.changeNavIndex(index: index + 2);
+                      if (navItems.items[index + 2].destinationChecker()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                navItems.items[index + 2].destination!,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  IconButton buildIconNavBarItem(
-      {required String icon,
-      required VoidCallback press,
-      bool isActive = false}) {
+  IconButton buildIconNavBarItem({
+    required String icon,
+    required VoidCallback press,
+    bool isActive = false,
+  }) {
     return IconButton(
       icon: SvgPicture.asset(
         icon,

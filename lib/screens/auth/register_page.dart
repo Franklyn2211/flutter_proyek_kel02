@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_proyek_kel02/database/user_db.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -7,29 +7,37 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(); // Tambahkan field untuk username
 
   Future<void> _register() async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final username = _usernameController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty || username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Username dan password tidak boleh kosong')),
+        SnackBar(content: Text('Semua field harus diisi')),
       );
       return;
     }
 
     try {
-      await UserDB().createUser(username, password);
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Update displayName dengan username
+      await userCredential.user!.updateDisplayName(username);
+      await userCredential.user!.reload();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registrasi berhasil!')),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Username sudah digunakan')),
+        SnackBar(content: Text('Registrasi gagal! Email sudah digunakan')),
       );
     }
   }
@@ -46,7 +54,6 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: 40),
-                // Ilustrasi Placeholder
                 Center(
                   child: Image.asset(
                     'assets/images/login_illustration.png',
@@ -54,14 +61,12 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
                 SizedBox(height: 30),
-                // Judul
                 Text(
                   'Buat Akun Baru',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF90AF17),
-                  ),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF90AF17)),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 8),
@@ -71,7 +76,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 30),
-                // Input Username
                 TextField(
                   controller: _usernameController,
                   decoration: InputDecoration(
@@ -83,7 +87,17 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
                 SizedBox(height: 20),
-                // Input Password
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email, color: Color(0xFF90AF17)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
                 TextField(
                   controller: _passwordController,
                   decoration: InputDecoration(
@@ -96,7 +110,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   obscureText: true,
                 ),
                 SizedBox(height: 30),
-                // Tombol Register
                 ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(
