@@ -25,6 +25,13 @@ class _AddRecipePageState extends State<AddRecipePage> {
   String? imageBase64; // Simpan gambar dalam format Base64
   File? _imageFile;
 
+  final List<String> categories = [
+    'Breakfast',
+    'Lunch',
+    'Dinner',
+    'Quick',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -32,12 +39,11 @@ class _AddRecipePageState extends State<AddRecipePage> {
     description = '';
     ingredients = [];
     instructions = '';
-    category = '';
+    category = ''; // Default kategori
     imageBase64 = null;
     _imageFile = null;
   }
 
-  // Fungsi untuk mengonversi file menjadi Base64
   Future<void> _convertImageToBase64(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
     setState(() {
@@ -45,7 +51,6 @@ class _AddRecipePageState extends State<AddRecipePage> {
     });
   }
 
-  // Fungsi untuk memilih gambar dari galeri perangkat
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -55,36 +60,32 @@ class _AddRecipePageState extends State<AddRecipePage> {
       setState(() {
         _imageFile = imageFile;
       });
-      // Konversi gambar ke Base64
       await _convertImageToBase64(imageFile);
     } else {
       print("No image selected.");
     }
   }
 
-  // Fungsi untuk mengambil ID pengguna yang sedang login
   String getCurrentUserId() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return user.uid; // Mengambil ID pengguna
+      return user.uid;
     }
-    return ''; // Kembalikan string kosong jika tidak ada pengguna yang login
+    return '';
   }
 
-  // Fungsi untuk mengambil nama pengguna yang sedang login
   String getCurrentUserName() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.displayName != null) {
-      return user.displayName!; // Mengambil displayName pengguna
+      return user.displayName!;
     }
-    return 'Unknown'; // Kembalikan 'Unknown' jika tidak ada nama pengguna
+    return 'Unknown';
   }
 
   Future<void> _saveRecipe() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Konversi gambar ke Base64
       String base64Image = '';
       if (_imageFile != null) {
         List<int> imageBytes = await _imageFile!.readAsBytes();
@@ -99,16 +100,14 @@ class _AddRecipePageState extends State<AddRecipePage> {
         'category': category,
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
-        'image_base64': base64Image, // Simpan hanya Base64
-        'author_id': getCurrentUserId(), // Menyimpan ID pengguna yang sedang login
-        'created_by': getCurrentUserName(), // Menyimpan nama pengguna yang membuat resep
+        'image_base64': base64Image,
+        'author_id': getCurrentUserId(),
+        'created_by': getCurrentUserName(),
       };
 
       try {
-        // Menambahkan data ke Firestore
         await FirebaseFirestore.instance.collection('recipes').add(recipeData);
 
-        // Kembali ke layar sebelumnya
         if (mounted) {
           Navigator.pop(context);
         }
@@ -125,7 +124,7 @@ class _AddRecipePageState extends State<AddRecipePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Recipe'),
+        title: Text('Add Recipe')
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -133,33 +132,83 @@ class _AddRecipePageState extends State<AddRecipePage> {
           key: _formKey,
           child: ListView(
             children: [
+              // Input Name
               TextFormField(
-                decoration: InputDecoration(labelText: 'Name'),
+                decoration: InputDecoration(
+                  labelText: 'Recipe Name',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Name is required' : null,
                 onSaved: (value) => name = value!,
               ),
+              SizedBox(height: 16),
+              
+              // Input Description
               TextFormField(
-                decoration: InputDecoration(labelText: 'Description'),
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
                 maxLines: 3,
                 onSaved: (value) => description = value!,
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Category'),
-                onSaved: (value) => category = value!,
+              SizedBox(height: 16),
+
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
+                value: category.isNotEmpty ? category : null,
+                items: categories
+                    .map((cat) =>
+                        DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    category = value!;
+                  });
+                },
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Category is required' : null,
               ),
+              SizedBox(height: 16),
+
+              // Ingredients Input
               TextFormField(
-                decoration:
-                    InputDecoration(labelText: 'Ingredients (comma separated)'),
+                decoration: InputDecoration(
+                  labelText: 'Ingredients (comma separated)',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
                 onSaved: (value) =>
                     ingredients = value?.split(',').map((e) => e.trim()).toList() ?? [],
               ),
+              SizedBox(height: 16),
+
+              // Instructions Input
               TextFormField(
-                decoration: InputDecoration(labelText: 'Instructions'),
+                decoration: InputDecoration(
+                  labelText: 'Instructions',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                ),
                 maxLines: 3,
                 onSaved: (value) => instructions = value!,
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
+
+              // Image Picker Section
               _imageFile != null
                   ? Column(
                       children: [
@@ -175,14 +224,33 @@ class _AddRecipePageState extends State<AddRecipePage> {
                         ),
                       ],
                     )
-                  : TextButton(
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: Colors.grey,
+                      ),
                       onPressed: _pickImage,
-                      child: Text('Pick an image'),
+                      child: Text(
+                        'Pick an image',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
               SizedBox(height: 20),
+
+              // Save Button
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
                 onPressed: _saveRecipe,
-                child: Text('Save Recipe'),
+                child: Text(
+                  'Save Recipe',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ],
           ),

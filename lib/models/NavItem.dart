@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_proyek_kel02/screens/home/home_screen.dart';
 import 'package:flutter_proyek_kel02/screens/profile/profile_screen.dart';
+import 'package:flutter_proyek_kel02/screens/search/search_screen.dart';
 
 class NavItem {
   final int id;
@@ -43,6 +44,7 @@ class NavItems extends ChangeNotifier {
     NavItem(
       id: 3,
       icon: "assets/icons/search.svg",
+      destination: SearchScreen(),
     ),
     NavItem(
       id: 4,

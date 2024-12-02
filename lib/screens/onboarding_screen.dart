@@ -94,7 +94,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               backgroundColor: Color(0xFF90AF17),
                             ),
                             onPressed: () {
-                              Navigator.pushReplacementNamed(context, '/login');
+                              Navigator.pushReplacementNamed(context, '/login'); // /home ganti jadi /login
                             },
                             child: const Text(
                               'Get Started',

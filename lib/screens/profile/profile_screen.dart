@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_proyek_kel02/screens/profile/savedrecipe_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_proyek_kel02/size_config.dart';
 import 'package:flutter_proyek_kel02/components/my_bottom_nav_bar.dart';
@@ -73,21 +74,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _ProfileMenuItem(
               iconSrc: "assets/icons/bookmark_fill.svg",
               title: "Saved Recipes",
-              press: () {},
-            ),
-            _ProfileMenuItem(
-              iconSrc: "assets/icons/chef_color.svg",
-              title: "Super Plan",
-              press: () {},
+              press: () {
+               Navigator.push(
+                context,
+                  MaterialPageRoute(
+                  builder: (context) => SavedRecipesScreen(), 
+                  ),
+               );
+              },
             ),
             _ProfileMenuItem(
               iconSrc: "assets/icons/language.svg",
               title: "Change Language",
-              press: () {},
-            ),
-            _ProfileMenuItem(
-              iconSrc: "assets/icons/info.svg",
-              title: "Help",
               press: () {},
             ),
           ],

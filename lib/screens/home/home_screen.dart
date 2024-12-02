@@ -15,7 +15,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String selectedCategory = "All";
+  String selectedCategory = "All"; // Default category is "All"
   bool isLoading = true;
   List<dynamic> recipes = [];
   String userName = '';
@@ -47,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       print("Error fetching recipes: $e");
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -146,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: MyBottomNavBar(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: Color.fromARGB(255, 241, 9, 9)),
         backgroundColor: Color(0xFF90AF17),
         onPressed: () async {
           await Navigator.push(
@@ -161,8 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AppBar buildAppBar() {
     return AppBar(
-      centerTitle:
-          false, // Ubah centerTitle menjadi false agar judul tidak di tengah
+      centerTitle: false, // Ubah centerTitle menjadi false agar judul tidak di tengah
       title: Row(
         children: [
           Image.asset(
@@ -217,13 +219,13 @@ class _CategoriesState extends State<Categories> {
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
-          itemBuilder: (context, index) => buildCategoriItem(index),
+          itemBuilder: (context, index) => buildCategoryItem(index),
         ),
       ),
     );
   }
 
-  Widget buildCategoriItem(int index) {
+  Widget buildCategoryItem(int index) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -326,26 +328,14 @@ class RecipeBundelCard extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Spacer(), // Menambahkan Spacer untuk mendorong teks ke bawah
-                    Text(
-                      'Created by: ${recipeBundle['created_by']}',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: defaultSize * 1.2,
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
-            ClipRRect(
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(defaultSize * 1.8),
-                bottomRight: Radius.circular(defaultSize * 1.8),
-              ),
-              child: Container(
-                width: defaultSize * 15,
-                height: double.infinity,
+            Expanded(
+              flex: 2,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(defaultSize * 1.8),
                 child: displayImage,
               ),
             ),
