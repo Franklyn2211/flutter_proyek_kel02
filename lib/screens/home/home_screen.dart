@@ -126,8 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? recipeBundle['instructions']
                                       : 'No Instructions Available',
                               'ingredients':
-                                  recipeBundle['ingredients'] is List<String>
-                                      ? recipeBundle['ingredients']
+                                  recipeBundle['ingredients'] is List<dynamic>
+                                      ? List<String>.from(
+                                          recipeBundle['ingredients'])
                                       : [],
                             };
 
@@ -149,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: MyBottomNavBar(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add, color: Color.fromARGB(255, 241, 9, 9)),
+        child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: Color(0xFF90AF17),
         onPressed: () async {
           await Navigator.push(
@@ -164,7 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AppBar buildAppBar() {
     return AppBar(
-      centerTitle: false, // Ubah centerTitle menjadi false agar judul tidak di tengah
+      centerTitle:
+          false, // Ubah centerTitle menjadi false agar judul tidak di tengah
       title: Row(
         children: [
           Image.asset(
@@ -328,14 +330,26 @@ class RecipeBundelCard extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    Spacer(), // Menambahkan Spacer untuk mendorong teks ke bawah
+                    Text(
+                      'By ${recipeBundle['created_by']}',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: defaultSize * 1.2,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            Expanded(
-              flex: 2,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(defaultSize * 1.8),
+            ClipRRect(
+              borderRadius: BorderRadius.only(
+                topRight: Radius.circular(defaultSize * 1.8),
+                bottomRight: Radius.circular(defaultSize * 1.8),
+              ),
+              child: Container(
+                width: defaultSize * 15,
+                height: double.infinity,
                 child: displayImage,
               ),
             ),

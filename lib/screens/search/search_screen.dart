@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_proyek_kel02/screens/home/recipe_detail_page.dart';
+import 'package:flutter_proyek_kel02/screens/recipe/add_recipe_page.dart';
 import 'package:flutter_proyek_kel02/size_config.dart';
+
+import '../../components/my_bottom_nav_bar.dart';
 
 class SearchScreen extends StatefulWidget {
   @override
@@ -23,7 +26,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _fetchRecipes() async {
     try {
       QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('recipes').get();
+          await FirebaseFirestore.instance.collection('recipes').limit(5).get();
       setState(() {
         recipes = snapshot.docs.map((doc) => doc.data()).toList();
         isLoading = false;
@@ -43,11 +46,11 @@ class _SearchScreenState extends State<SearchScreen> {
       return recipes; // Jika tidak ada pencarian, tampilkan semua resep
     }
     return recipes
-        .where((recipe) => recipe['name']
-            .toLowerCase()
-            .contains(searchQuery) || recipe['category']
-            .toLowerCase()
-            .contains(searchQuery)) // Mencocokkan nama atau kategori
+        .where((recipe) =>
+            recipe['name'].toLowerCase().contains(searchQuery) ||
+            recipe['category']
+                .toLowerCase()
+                .contains(searchQuery)) // Mencocokkan nama atau kategori
         .toList();
   }
 
@@ -56,7 +59,8 @@ class _SearchScreenState extends State<SearchScreen> {
     SizeConfig().init(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text("Search Recipes", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Search Recipes",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Color(0xFF90AF17),
         elevation: 5,
       ),
@@ -80,7 +84,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 18, horizontal: 20),
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -117,7 +122,8 @@ class _SearchScreenState extends State<SearchScreen> {
                               margin: EdgeInsets.symmetric(vertical: 10),
                               color: Colors.white,
                               child: Padding(
-                                padding: EdgeInsets.all(SizeConfig.defaultSize * 1.5),
+                                padding: EdgeInsets.all(
+                                    SizeConfig.defaultSize * 1.5),
                                 child: Row(
                                   children: <Widget>[
                                     ClipRRect(
@@ -131,23 +137,28 @@ class _SearchScreenState extends State<SearchScreen> {
                                     SizedBox(width: SizeConfig.defaultSize * 2),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: <Widget>[
                                           Text(
                                             recipe['name'],
                                             style: TextStyle(
-                                              fontSize: SizeConfig.defaultSize * 2.2,
+                                              fontSize:
+                                                  SizeConfig.defaultSize * 2.2,
                                               fontWeight: FontWeight.bold,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          SizedBox(height: SizeConfig.defaultSize * 0.5),
+                                          SizedBox(
+                                              height:
+                                                  SizeConfig.defaultSize * 0.5),
                                           Text(
                                             recipe['category'],
                                             style: TextStyle(
                                               color: Colors.grey[600],
-                                              fontSize: SizeConfig.defaultSize * 1.8,
+                                              fontSize:
+                                                  SizeConfig.defaultSize * 1.8,
                                             ),
                                           ),
                                         ],
@@ -164,6 +175,19 @@ class _SearchScreenState extends State<SearchScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: MyBottomNavBar(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Color(0xFF90AF17),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddRecipePage()),
+          );
+          _fetchRecipes(); // Refresh data after adding new recipe
+        },
       ),
     );
   }

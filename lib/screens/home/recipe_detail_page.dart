@@ -6,45 +6,85 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart'; // Untuk ikon SVG
 
-class RecipeDetailPage extends StatelessWidget {
+class RecipeDetailPage extends StatefulWidget {
   final Map<String, dynamic> recipe;
 
   const RecipeDetailPage({required this.recipe, Key? key}) : super(key: key);
 
-  Future<void> saveRecipe(BuildContext context) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
+  @override
+  _RecipeDetailPageState createState() => _RecipeDetailPageState();
+}
 
-      if (user != null) {
-        // Simpan resep ke subkoleksi `saved_recipes` milik pengguna
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('saved_recipes')
-            .doc(recipe['id']) // Gunakan ID resep sebagai dokumen
-            .set({
-          'name': recipe['name'],
-          'description': recipe['description'],
-          'category': recipe['category'],
-          'ingredients': recipe['ingredients'],
-          'instructions': recipe['instructions'],
-          'image_base64': recipe['image_base64'],
-          'saved_at': DateTime.now(), // Waktu penyimpanan
+class _RecipeDetailPageState extends State<RecipeDetailPage> {
+  bool _isSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfRecipeSaved();
+  }
+
+  Future<void> _checkIfRecipeSaved() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      
+      final savedRecipeDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('saved_recipes')
+          .doc(widget.recipe['id'])
+          .get();
+
+      setState(() {
+        _isSaved = savedRecipeDoc.exists;
+      });
+    } catch (e) {
+      print("Error checking saved recipe: $e");
+    }
+  }
+
+  Future<void> _toggleSaveRecipe(BuildContext context) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+
+      final recipeRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('saved_recipes')
+          .doc(widget.recipe['id']);
+
+      if (_isSaved) {
+        // Hapus resep dari saved_recipes
+        await recipeRef.delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Recipe removed from saved recipes.")),
+        );
+        setState(() {
+          _isSaved = false;
+        });
+      } else {
+        // Simpan resep ke saved_recipes
+        await recipeRef.set({
+          'name': widget.recipe['name'],
+          'description': widget.recipe['description'],
+          'category': widget.recipe['category'],
+          'ingredients': widget.recipe['ingredients'],
+          'instructions': widget.recipe['instructions'],
+          'image_base64': widget.recipe['image_base64'],
+          'saved_at': FieldValue.serverTimestamp(),
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Recipe saved successfully!")),
         );
-      } else {
-        // Jika pengguna belum login
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please log in to save recipes.")),
-        );
+        setState(() {
+          _isSaved = true;
+        });
       }
     } catch (e) {
-      print("Error saving recipe: $e");
+      print("Error saving/removing recipe: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save recipe.")),
+        SnackBar(content: Text("Failed to save/remove recipe.")),
       );
     }
   }
@@ -52,15 +92,15 @@ class RecipeDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Pastikan data memiliki nilai default jika tidak valid
-    final recipeName = recipe['name'] ?? 'No Name';
-    final recipeDescription = recipe['description'] ?? 'No Description';
-    final recipeCategory = recipe['category'] ?? 'Uncategorized';
-    final recipeInstructions = recipe['instructions'] ?? 'No Instructions Available';
+    final recipeName = widget.recipe['name'] ?? 'No Name';
+    final recipeDescription = widget.recipe['description'] ?? 'No Description';
+    final recipeCategory = widget.recipe['category'] ?? 'Uncategorized';
+    final recipeInstructions = widget.recipe['instructions'] ?? 'No Instructions Available';
 
     // Mengambil ingredients dan memastikan bentuknya adalah List
-    var recipeIngredients = recipe['ingredients'] ?? [];
+    var recipeIngredients = widget.recipe['ingredients'] ?? [];
 
-    final recipeImageBase64 = recipe['image_base64'];
+    final recipeImageBase64 = widget.recipe['image_base64'];
 
     Uint8List? imageBytes;
     if (recipeImageBase64 != null && recipeImageBase64.isNotEmpty) {
@@ -75,19 +115,21 @@ class RecipeDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(recipeName),
-        backgroundColor: Colors.green[700],
+        backgroundColor: Color(0xFF90AF17),
         actions: [
           // Tambahkan ikon "Saved Recipes"
           IconButton(
             icon: SvgPicture.asset(
-              "assets/icons/bookmark_fill.svg", // Ikon bookmark
+              _isSaved 
+                ? "assets/icons/bookmark_fill.svg"
+                : "assets/icons/bookmark.svg",
               height: 24,
               color: Colors.white,
             ),
             onPressed: () async {
-              await saveRecipe(context);
+              await _toggleSaveRecipe(context);
             },
-            tooltip: "Save Recipe",
+            tooltip: _isSaved ? "Remove from Saved" : "Save Recipe",
           ),
         ],
       ),
@@ -135,7 +177,8 @@ class RecipeDetailPage extends StatelessWidget {
               Card(
                 margin: EdgeInsets.symmetric(vertical: 10),
                 elevation: 5,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Text(
@@ -161,7 +204,10 @@ class RecipeDetailPage extends StatelessWidget {
               // Bahan-bahan
               Text(
                 "Ingredients:",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
               ),
               SizedBox(height: 10),
               if (recipeIngredients.isNotEmpty)
@@ -175,7 +221,8 @@ class RecipeDetailPage extends StatelessWidget {
                         Expanded(
                           child: Text(
                             ingredient,
-                            style: TextStyle(fontSize: 16, color: Colors.black54),
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.black54),
                           ),
                         ),
                       ],
@@ -183,13 +230,17 @@ class RecipeDetailPage extends StatelessWidget {
                   );
                 }).toList()
               else
-                Text("No ingredients available.", style: TextStyle(fontSize: 16, color: Colors.black54)),
+                Text("No ingredients available.",
+                    style: TextStyle(fontSize: 16, color: Colors.black54)),
               SizedBox(height: 20),
 
               // Instruksi
               Text(
                 "Instructions:",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
               ),
               SizedBox(height: 10),
               Text(

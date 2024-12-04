@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 
 class SavedRecipesScreen extends StatefulWidget {
   @override
@@ -31,6 +32,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
         List<String> recipeIds = savedDocs.docs.map((doc) => doc.id).toList();
 
         // Ambil detail resep dari koleksi recipes
+        List<Map<String, dynamic>> fetchedRecipes = [];
         for (String id in recipeIds) {
           DocumentSnapshot recipeDoc = await FirebaseFirestore.instance
               .collection('recipes')
@@ -38,16 +40,30 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
               .get();
 
           if (recipeDoc.exists) {
-            savedRecipes.add(recipeDoc.data() as Map<String, dynamic>);
+            fetchedRecipes.add(recipeDoc.data() as Map<String, dynamic>);
           }
+        }
+        if (mounted) {
+          setState(() {
+            savedRecipes = fetchedRecipes;
+            isLoading = false;
+          });
+        }
+      } else {
+        // If no user is logged in
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
         }
       }
     } catch (e) {
       print("Error fetching saved recipes: $e");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -69,8 +85,7 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                     return ListTile(
                       leading: recipe['image_base64'] != null
                           ? Image.memory(
-                              UriData.fromString(recipe['image_base64'])
-                                  .contentAsBytes(),
+                              base64Decode(recipe['image_base64']),
                               fit: BoxFit.cover,
                               width: 50,
                               height: 50,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_proyek_kel02/screens/home/home_screen.dart';
 import 'package:flutter_proyek_kel02/screens/profile/profile_screen.dart';
+import 'package:flutter_proyek_kel02/screens/profile/savedrecipe_screen.dart';
 import 'package:flutter_proyek_kel02/screens/search/search_screen.dart';
 
 class NavItem {
@@ -40,6 +41,7 @@ class NavItems extends ChangeNotifier {
     NavItem(
       id: 2,
       icon: "assets/icons/list.svg",
+      destination: SavedRecipesScreen(),
     ),
     NavItem(
       id: 3,
