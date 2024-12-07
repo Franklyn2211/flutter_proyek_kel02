@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_proyek_kel02/screens/profile/savedrecipe_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_proyek_kel02/size_config.dart';
 import 'package:flutter_proyek_kel02/components/my_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/auth_preferences.dart';
+import '../recipe/add_recipe_page.dart';
+import 'user_recipe_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -72,13 +73,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SizedBox(height: SizeConfig.defaultSize * 2),
             _ProfileMenuItem(
-              iconSrc: "assets/icons/bookmark_fill.svg",
-              title: "Saved Recipes",
+              iconSrc: "assets/icons/chef_color.svg",
+              title: "$username Recipes",
               press: () {
                Navigator.push(
                 context,
                   MaterialPageRoute(
-                  builder: (context) => SavedRecipesScreen(), 
+                  builder: (context) => UserRecipeScreen(), 
                   ),
                );
               },
@@ -96,8 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: const Color(0xFF90AF17),
-        onPressed: () {
-          // Tambahkan logika untuk floating button
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddRecipePage()),
+          );
         },
       ),
     );

@@ -3,26 +3,25 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image/image.dart' as img;
-import 'package:firebase_auth/firebase_auth.dart';
 
-class AddRecipePage extends StatefulWidget {
-  final VoidCallback? onSave;
+class EditRecipePage extends StatefulWidget {
+  final Map<String, dynamic> recipeData;
+  final String recipeId;
 
-  const AddRecipePage({this.onSave});
+  const EditRecipePage({required this.recipeData, required this.recipeId});
 
   @override
-  _AddRecipePageState createState() => _AddRecipePageState();
+  _EditRecipePageState createState() => _EditRecipePageState();
 }
 
-class _AddRecipePageState extends State<AddRecipePage> {
+class _EditRecipePageState extends State<EditRecipePage> {
   final _formKey = GlobalKey<FormState>();
   late String name;
   late String description;
   late List<String> ingredients;
   late String instructions;
   late String category;
-  String? imageBase64; // Simpan gambar dalam format Base64
+  String? imageBase64;
   File? _imageFile;
 
   final List<String> categories = [
@@ -35,12 +34,15 @@ class _AddRecipePageState extends State<AddRecipePage> {
   @override
   void initState() {
     super.initState();
-    name = '';
-    description = '';
-    ingredients = [];
-    instructions = '';
-    category = ''; // Default kategori
-    imageBase64 = null;
+    final recipe = widget.recipeData;
+    name = recipe['name'] ?? '';
+    description = recipe['description'] ?? '';
+    ingredients = (recipe['ingredients'] as List<dynamic>)
+        .map((item) => item.toString())
+        .toList();
+    instructions = recipe['instructions'] ?? '';
+    category = recipe['category'] ?? '';
+    imageBase64 = recipe['image_base64'];
     _imageFile = null;
   }
 
@@ -66,55 +68,50 @@ class _AddRecipePageState extends State<AddRecipePage> {
     }
   }
 
-  String getCurrentUserId() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      return user.uid;
-    }
-    return '';
+  Future<void> _clearImage() async {
+    setState(() {
+      _imageFile = null;
+      imageBase64 = null;
+    });
   }
 
-  String getCurrentUserName() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && user.displayName != null) {
-      return user.displayName!;
-    }
-    return 'Unknown';
-  }
-
-  Future<void> _saveRecipe() async {
+  Future<void> _updateRecipe() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      String base64Image = '';
+      String base64Image = imageBase64 ?? '';
       if (_imageFile != null) {
         List<int> imageBytes = await _imageFile!.readAsBytes();
         base64Image = base64Encode(imageBytes);
       }
 
-      final recipeData = {
+      final updatedRecipe = {
         'name': name,
         'description': description,
         'ingredients': ingredients,
         'instructions': instructions,
         'category': category,
-        'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
         'image_base64': base64Image,
-        'author_id': getCurrentUserId(),
-        'created_by': getCurrentUserName(),
       };
 
       try {
-        await FirebaseFirestore.instance.collection('recipes').add(recipeData);
+        await FirebaseFirestore.instance
+            .collection('recipes')
+            .doc(widget.recipeId)
+            .update(updatedRecipe);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recipe updated successfully!')),
+        );
 
         if (mounted) {
           Navigator.pop(context);
         }
       } catch (e) {
-        print("Error saving recipe: $e");
+        print("Error updating recipe: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to save recipe. Please try again.")),
+          SnackBar(content: Text("Failed to update recipe. Please try again.")),
         );
       }
     }
@@ -124,7 +121,7 @@ class _AddRecipePageState extends State<AddRecipePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Recipe')
+        title: Text('Edit Recipe'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -134,6 +131,7 @@ class _AddRecipePageState extends State<AddRecipePage> {
             children: [
               // Input Name
               TextFormField(
+                initialValue: name,
                 decoration: InputDecoration(
                   labelText: 'Recipe Name',
                   border: OutlineInputBorder(),
@@ -145,9 +143,10 @@ class _AddRecipePageState extends State<AddRecipePage> {
                 onSaved: (value) => name = value!,
               ),
               SizedBox(height: 16),
-              
+
               // Input Description
               TextFormField(
+                initialValue: description,
                 decoration: InputDecoration(
                   labelText: 'Description',
                   border: OutlineInputBorder(),
@@ -161,42 +160,45 @@ class _AddRecipePageState extends State<AddRecipePage> {
 
               // Category Dropdown
               DropdownButtonFormField<String>(
+                value: category.isNotEmpty ? category : null,
                 decoration: InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
                   filled: true,
                   fillColor: Colors.grey[200],
                 ),
-                value: category.isNotEmpty ? category : null,
                 items: categories
-                    .map((cat) =>
-                        DropdownMenuItem(value: cat, child: Text(cat)))
+                    .map(
+                        (cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                     .toList(),
                 onChanged: (value) {
                   setState(() {
                     category = value!;
                   });
                 },
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Category is required' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Category is required'
+                    : null,
               ),
               SizedBox(height: 16),
 
               // Ingredients Input
               TextFormField(
+                initialValue: ingredients.join(', '),
                 decoration: InputDecoration(
                   labelText: 'Ingredients (comma separated)',
                   border: OutlineInputBorder(),
                   filled: true,
                   fillColor: Colors.grey[200],
                 ),
-                onSaved: (value) =>
-                    ingredients = value?.split(',').map((e) => e.trim()).toList() ?? [],
+                onSaved: (value) => ingredients =
+                    value?.split(',').map((e) => e.trim()).toList() ?? [],
               ),
               SizedBox(height: 16),
 
               // Instructions Input
               TextFormField(
+                initialValue: instructions,
                 decoration: InputDecoration(
                   labelText: 'Instructions',
                   border: OutlineInputBorder(),
@@ -208,45 +210,48 @@ class _AddRecipePageState extends State<AddRecipePage> {
               ),
               SizedBox(height: 20),
 
-              // Image Picker Section
-              _imageFile != null
-                  ? Column(
-                      children: [
-                        Image.file(
-                          _imageFile!,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    )
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        backgroundColor: Colors.grey,
-                      ),
-                      onPressed: _pickImage,
-                      child: Text(
-                        'Pick an image',
-                        style: TextStyle(color: Colors.white),
-                      ),
+              // Image Picker
+              if (_imageFile != null)
+                Column(
+                  children: [
+                    Image.file(
+                      _imageFile!,
+                      height: 150,
+                      fit: BoxFit.cover,
                     ),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _clearImage,
+                      child: Text('Clear Image'),
+                    ),
+                  ],
+                )
+              else if (imageBase64 != null)
+                Column(
+                  children: [
+                    Image.memory(
+                      base64Decode(imageBase64!),
+                      height: 150,
+                      fit: BoxFit.cover,
+                    ),
+                    SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _pickImage,
+                      child: Text('Change Image'),
+                    ),
+                  ],
+                )
+              else
+                ElevatedButton(
+                  onPressed: _pickImage,
+                  child: Text('Pick an Image'),
+                ),
               SizedBox(height: 20),
 
-              // Save Button
+              // Update Button
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                onPressed: _saveRecipe,
-                child: Text(
-                  'Save Recipe',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                onPressed: _updateRecipe,
+                child: Text('Update Recipe'),
               ),
             ],
           ),

@@ -186,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
             context,
             MaterialPageRoute(builder: (context) => AddRecipePage()),
           );
-          _fetchRecipes(); // Refresh data after adding new recipe
+          _fetchRecipes();
         },
       ),
     );

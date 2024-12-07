@@ -2,9 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_proyek_kel02/screens/auth/login_page.dart';
 import 'package:flutter_proyek_kel02/screens/onboarding_screen.dart';
-import 'package:flutter_proyek_kel02/utils/auth_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_proyek_kel02/constants.dart';
 import 'package:flutter_proyek_kel02/models/NavItem.dart';
 import 'package:flutter_proyek_kel02/screens/home/home_screen.dart';
 
