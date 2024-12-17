@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 
+import '../../components/my_bottom_nav_bar.dart';
+import '../recipe/add_recipe_page.dart';
+
 class SavedRecipesScreen extends StatefulWidget {
   @override
   _SavedRecipesScreenState createState() => _SavedRecipesScreenState();
@@ -99,6 +102,18 @@ class _SavedRecipesScreenState extends State<SavedRecipesScreen> {
                     );
                   },
                 ),
+                bottomNavigationBar: MyBottomNavBar(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color(0xFF90AF17),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddRecipePage()),
+          );
+        },
+      ),
     );
   }
 }

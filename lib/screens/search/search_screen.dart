@@ -22,13 +22,31 @@ class _SearchScreenState extends State<SearchScreen> {
     _fetchRecipes();
   }
 
-  // Fungsi untuk mengambil data resep dari Firestore
-  Future<void> _fetchRecipes() async {
+  Future<void> _fetchRecipes({String query = ""}) async {
     try {
-      QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('recipes').limit(5).get();
+      QuerySnapshot snapshot;
+      if (query.isEmpty) {
+        // Ambil hanya 5 resep jika tidak ada pencarian
+        snapshot = await FirebaseFirestore.instance
+            .collection('recipes')
+            .limit(5)
+            .get();
+      } else {
+        // Ambil semua resep yang cocok dengan pencarian
+        snapshot = await FirebaseFirestore.instance
+            .collection('recipes')
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+            .get();
+      }
+
       setState(() {
-        recipes = snapshot.docs.map((doc) => doc.data()).toList();
+        recipes = snapshot.docs.map((doc) {
+          return {
+            ...doc.data() as Map<String, dynamic>,
+            'id': doc.id, // Tambahkan ID dokumen
+          };
+        }).toList();
         isLoading = false;
       });
     } catch (e) {
@@ -64,6 +82,7 @@ class _SearchScreenState extends State<SearchScreen> {
         backgroundColor: Color(0xFF90AF17),
         elevation: 5,
       ),
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: SizeConfig.defaultSize * 2),
@@ -91,7 +110,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     setState(() {
                       isLoading = true;
                     });
-                    _fetchRecipes();
+                    _fetchRecipes(query: value);
                   },
                 ),
               ),

@@ -160,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _fetchRecipes(); // Refresh data after adding new recipe
         },
       ),
+      resizeToAvoidBottomInset: false,
     );
   }
 
