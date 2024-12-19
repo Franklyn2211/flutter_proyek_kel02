@@ -4,9 +4,11 @@ import 'package:flutter_proyek_kel02/size_config.dart';
 import 'package:flutter_proyek_kel02/components/my_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../utils/auth_preferences.dart';
 import '../recipe/add_recipe_page.dart';
 import 'user_recipe_screen.dart';
+import 'package:flutter_proyek_kel02/screens/theme/theme_notifier.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -42,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SizeConfig().init(context);
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF90AF17),
@@ -86,8 +88,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _ProfileMenuItem(
               iconSrc: "assets/icons/language.svg",
-              title: "Change Language",
-              press: () {},
+              title: themeNotifier.isDarkTheme ? "Light Mode" : "Dark Mode",
+              press: () {
+                themeNotifier.toggleTheme();
+              },
             ),
           ],
         ),

@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // Untuk ikon SVG
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RecipeDetailPage extends StatefulWidget {
   final Map<String, dynamic> recipe;
@@ -17,53 +16,41 @@ class RecipeDetailPage extends StatefulWidget {
 
 class _RecipeDetailPageState extends State<RecipeDetailPage> {
   bool _isSaved = false;
+  late final User _user;
+  late final Stream<DocumentSnapshot> _savedStream;
 
   @override
   void initState() {
     super.initState();
-    _checkIfRecipeSaved();
-  }
-
-  Future<void> _checkIfRecipeSaved() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser!;
-      
-      final savedRecipeDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('saved_recipes')
-          .doc(widget.recipe['id'])
-          .get();
-
-      setState(() {
-        _isSaved = savedRecipeDoc.exists;
-      });
-    } catch (e) {
-      print("Error checking saved recipe: $e");
-    }
+    _user = FirebaseAuth.instance.currentUser!;
+    // Setup realtime listener untuk status saved
+    _savedStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_user.uid)
+        .collection('saved_recipes')
+        .doc(widget.recipe['id'])
+        .snapshots();
   }
 
   Future<void> _toggleSaveRecipe(BuildContext context) async {
     try {
-      final user = FirebaseAuth.instance.currentUser!;
-
       final recipeRef = FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(_user.uid)
           .collection('saved_recipes')
           .doc(widget.recipe['id']);
 
       if (_isSaved) {
-        // Hapus resep dari saved_recipes
+        // Unsave recipe
         await recipeRef.delete();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Recipe removed from saved recipes.")),
+          SnackBar(
+            content: Text("Recipe removed from saved recipes"),
+            backgroundColor: Colors.red,
+          ),
         );
-        setState(() {
-          _isSaved = false;
-        });
       } else {
-        // Simpan resep ke saved_recipes
+        // Save recipe
         await recipeRef.set({
           'name': widget.recipe['name'],
           'description': widget.recipe['description'],
@@ -72,34 +59,35 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           'instructions': widget.recipe['instructions'],
           'image_base64': widget.recipe['image_base64'],
           'saved_at': FieldValue.serverTimestamp(),
+          'is_saved': true,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Recipe saved successfully!")),
+          SnackBar(
+            content: Text("Recipe saved successfully!"),
+            backgroundColor: Colors.green,
+          ),
         );
-        setState(() {
-          _isSaved = true;
-        });
       }
     } catch (e) {
       print("Error saving/removing recipe: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save/remove recipe.")),
+        SnackBar(
+          content: Text("Failed to save/remove recipe"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Pastikan data memiliki nilai default jika tidak valid
     final recipeName = widget.recipe['name'] ?? 'No Name';
     final recipeDescription = widget.recipe['description'] ?? 'No Description';
     final recipeCategory = widget.recipe['category'] ?? 'Uncategorized';
     final recipeInstructions = widget.recipe['instructions'] ?? 'No Instructions Available';
 
-    // Mengambil ingredients dan memastikan bentuknya adalah List
     var recipeIngredients = widget.recipe['ingredients'] ?? [];
-
     final recipeImageBase64 = widget.recipe['image_base64'];
 
     Uint8List? imageBytes;
@@ -117,19 +105,25 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         title: Text(recipeName),
         backgroundColor: Color(0xFF90AF17),
         actions: [
-          // Tambahkan ikon "Saved Recipes"
-          IconButton(
-            icon: SvgPicture.asset(
-              _isSaved 
-                ? "assets/icons/bookmark_fill.svg"
-                : "assets/icons/bookmark.svg",
-              height: 24,
-              color: Colors.white,
-            ),
-            onPressed: () async {
-              await _toggleSaveRecipe(context);
+          StreamBuilder<DocumentSnapshot>(
+            stream: _savedStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                _isSaved = snapshot.data!.exists;
+              }
+              
+              return IconButton(
+                icon: SvgPicture.asset(
+                  _isSaved
+                      ? "assets/icons/bookmark_fill.svg"
+                      : "assets/icons/bookmark.svg",
+                  height: 24,
+                  color: Colors.white,
+                ),
+                onPressed: () => _toggleSaveRecipe(context),
+                tooltip: _isSaved ? "Remove from Saved" : "Save Recipe",
+              );
             },
-            tooltip: _isSaved ? "Remove from Saved" : "Save Recipe",
           ),
         ],
       ),
@@ -139,7 +133,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tampilkan gambar jika valid
               if (imageBytes != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
@@ -161,8 +154,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   child: Icon(Icons.image, size: 100, color: Colors.grey[600]),
                 ),
               SizedBox(height: 20),
-
-              // Nama resep
               Text(
                 recipeName,
                 style: TextStyle(
@@ -172,8 +163,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 ),
               ),
               SizedBox(height: 8),
-
-              // Deskripsi resep
               Card(
                 margin: EdgeInsets.symmetric(vertical: 10),
                 elevation: 5,
@@ -189,8 +178,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 ),
               ),
               SizedBox(height: 10),
-
-              // Kategori
               Text(
                 "Category: $recipeCategory",
                 style: TextStyle(
@@ -200,8 +187,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 ),
               ),
               SizedBox(height: 20),
-
-              // Bahan-bahan
               Text(
                 "Ingredients:",
                 style: TextStyle(
@@ -221,8 +206,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                         Expanded(
                           child: Text(
                             ingredient,
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.black54),
+                            style: TextStyle(fontSize: 16, color: Colors.black54),
                           ),
                         ),
                       ],
@@ -233,8 +217,6 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 Text("No ingredients available.",
                     style: TextStyle(fontSize: 16, color: Colors.black54)),
               SizedBox(height: 20),
-
-              // Instruksi
               Text(
                 "Instructions:",
                 style: TextStyle(

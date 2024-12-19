@@ -5,6 +5,7 @@ import 'package:flutter_proyek_kel02/screens/onboarding_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_proyek_kel02/models/NavItem.dart';
 import 'package:flutter_proyek_kel02/screens/home/home_screen.dart';
+import 'package:flutter_proyek_kel02/screens/theme/theme_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,22 +17,25 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => NavItems(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Recipe App',
-        theme: ThemeData(
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: AppBarTheme(color: Colors.white, elevation: 0),
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-        ),
-        routes: {
-          '/onboarding': (context) => OnboardingScreen(),
-          '/login': (context) => LoginPage(),
-          '/home': (context) => HomeScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => NavItems()),
+        ChangeNotifierProvider(create: (context) => ThemeNotifier()),
+      ],
+      child: Consumer<ThemeNotifier>(
+        builder: (context, theme, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Recipe App',
+            theme: theme.isDarkTheme ? ThemeData.dark() : ThemeData.light(),
+            routes: {
+              '/onboarding': (context) => OnboardingScreen(),
+              // '/login': (context) => LoginPage(),
+              '/home': (context) => HomeScreen(),
+            },
+            home: OnboardingScreen(),
+          );
         },
-        home: OnboardingScreen(), // Halaman awal adalah OnboardingScreen
       ),
     );
   }
