@@ -9,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AddRecipePage extends StatefulWidget {
   final VoidCallback? onSave;
 
-  const AddRecipePage({this.onSave});
+  const AddRecipePage({super.key, this.onSave});
 
   @override
   _AddRecipePageState createState() => _AddRecipePageState();
@@ -124,134 +124,184 @@ class _AddRecipePageState extends State<AddRecipePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Recipe')
+        backgroundColor: Color(0xFF90AF17),
+        elevation: 0,
+        title: Text(
+          'Add Recipe',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        color: Color(0xFFF8F9FA),
         child: Form(
           key: _formKey,
           child: ListView(
+            padding: EdgeInsets.all(20),
             children: [
-              // Input Name
+              // Image Picker Section
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Color(0xFFEFF6E7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Color(0xFF90AF17).withOpacity(0.3)),
+                ),
+                child: _imageFile != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.file(
+                          _imageFile!,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : InkWell(
+                        onTap: _pickImage,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 40,
+                              color: Color(0xFF90AF17),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Add Recipe Photo',
+                              style: TextStyle(
+                                color: Color(0xFF90AF17),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+              SizedBox(height: 24),
+
+              // Recipe Name Input
               TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Recipe Name',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                decoration: _buildInputDecoration(
+                  'Recipe Name',
+                  Icons.restaurant_menu,
                 ),
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Name is required' : null,
                 onSaved: (value) => name = value!,
               ),
               SizedBox(height: 16),
-              
-              // Input Description
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
-                maxLines: 3,
-                onSaved: (value) => description = value!,
-              ),
-              SizedBox(height: 16),
 
               // Category Dropdown
               DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                decoration: _buildInputDecoration(
+                  'Category',
+                  Icons.category,
                 ),
                 value: category.isNotEmpty ? category : null,
                 items: categories
-                    .map((cat) =>
-                        DropdownMenuItem(value: cat, child: Text(cat)))
+                    .map(
+                        (cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                     .toList(),
                 onChanged: (value) {
                   setState(() {
                     category = value!;
                   });
                 },
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Category is required' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Category is required'
+                    : null,
+              ),
+              SizedBox(height: 16),
+
+              // Description Input
+              TextFormField(
+                decoration: _buildInputDecoration(
+                  'Description',
+                  Icons.description,
+                ).copyWith(
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                onSaved: (value) => description = value!,
               ),
               SizedBox(height: 16),
 
               // Ingredients Input
               TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Ingredients (comma separated)',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                decoration: _buildInputDecoration(
+                  'Ingredients (comma separated)',
+                  Icons.format_list_bulleted,
+                ).copyWith(
+                  alignLabelWithHint: true,
                 ),
-                onSaved: (value) =>
-                    ingredients = value?.split(',').map((e) => e.trim()).toList() ?? [],
+                maxLines: 3,
+                onSaved: (value) => ingredients =
+                    value?.split(',').map((e) => e.trim()).toList() ?? [],
               ),
               SizedBox(height: 16),
 
               // Instructions Input
               TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Instructions',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                decoration: _buildInputDecoration(
+                  'Instructions',
+                  Icons.receipt_long,
+                ).copyWith(
+                  alignLabelWithHint: true,
                 ),
-                maxLines: 3,
+                maxLines: 5,
                 onSaved: (value) => instructions = value!,
               ),
-              SizedBox(height: 20),
-
-              // Image Picker Section
-              _imageFile != null
-                  ? Column(
-                      children: [
-                        Image.file(
-                          _imageFile!,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    )
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        backgroundColor: Colors.grey,
-                      ),
-                      onPressed: _pickImage,
-                      child: Text(
-                        'Pick an image',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-              SizedBox(height: 20),
+              SizedBox(height: 32),
 
               // Save Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.green,
+                  backgroundColor: Color(0xFF90AF17),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 2,
                 ),
                 onPressed: _saveRecipe,
                 child: Text(
                   'Save Recipe',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Color(0xFF90AF17)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFF90AF17)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFF90AF17).withOpacity(0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFF90AF17), width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 }

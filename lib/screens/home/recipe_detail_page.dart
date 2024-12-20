@@ -8,7 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 class RecipeDetailPage extends StatefulWidget {
   final Map<String, dynamic> recipe;
 
-  const RecipeDetailPage({required this.recipe, Key? key}) : super(key: key);
+  const RecipeDetailPage({required this.recipe, super.key});
 
   @override
   _RecipeDetailPageState createState() => _RecipeDetailPageState();
@@ -16,225 +16,283 @@ class RecipeDetailPage extends StatefulWidget {
 
 class _RecipeDetailPageState extends State<RecipeDetailPage> {
   bool _isSaved = false;
-  late final User _user;
+  late final User? _user;
   late final Stream<DocumentSnapshot> _savedStream;
 
   @override
   void initState() {
     super.initState();
-    _user = FirebaseAuth.instance.currentUser!;
-    // Setup realtime listener untuk status saved
-    _savedStream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(_user.uid)
-        .collection('saved_recipes')
-        .doc(widget.recipe['id'])
-        .snapshots();
+    _user = FirebaseAuth.instance.currentUser;
+    if (_user != null) {
+      _savedStream = FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .collection('saved_recipes')
+          .doc(widget.recipe['id'])
+          .snapshots();
+    }
   }
 
-  Future<void> _toggleSaveRecipe(BuildContext context) async {
+  Future<void> _toggleSaveRecipe() async {
+    if (_user == null) return;
+
     try {
       final recipeRef = FirebaseFirestore.instance
           .collection('users')
-          .doc(_user.uid)
+          .doc(_user!.uid)
           .collection('saved_recipes')
           .doc(widget.recipe['id']);
 
       if (_isSaved) {
-        // Unsave recipe
         await recipeRef.delete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Recipe removed from saved recipes"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar("Recipe removed from saved recipes", Colors.red);
       } else {
-        // Save recipe
         await recipeRef.set({
+          'recipe_id': widget.recipe['id'],
           'name': widget.recipe['name'],
           'description': widget.recipe['description'],
           'category': widget.recipe['category'],
           'ingredients': widget.recipe['ingredients'],
           'instructions': widget.recipe['instructions'],
           'image_base64': widget.recipe['image_base64'],
+          'created_by': widget.recipe['created_by'],
           'saved_at': FieldValue.serverTimestamp(),
-          'is_saved': true,
+          'author_id': widget.recipe['author_id'],
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Recipe saved successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showSnackBar("Recipe saved successfully!", Color(0xFF90AF17));
       }
     } catch (e) {
-      print("Error saving/removing recipe: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to save/remove recipe"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      print("Error toggling save recipe: $e");
+      _showSnackBar("Failed to save/remove recipe", Colors.red);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final recipeName = widget.recipe['name'] ?? 'No Name';
-    final recipeDescription = widget.recipe['description'] ?? 'No Description';
-    final recipeCategory = widget.recipe['category'] ?? 'Uncategorized';
-    final recipeInstructions = widget.recipe['instructions'] ?? 'No Instructions Available';
-
-    var recipeIngredients = widget.recipe['ingredients'] ?? [];
-    final recipeImageBase64 = widget.recipe['image_base64'];
-
-    Uint8List? imageBytes;
-    if (recipeImageBase64 != null && recipeImageBase64.isNotEmpty) {
-      try {
-        imageBytes = base64Decode(recipeImageBase64);
-      } catch (e) {
-        print("Error decoding image: $e");
-        imageBytes = null;
-      }
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(recipeName),
-        backgroundColor: Color(0xFF90AF17),
-        actions: [
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRecipeHeader(),
+                  SizedBox(height: 24),
+                  _buildIngredientsList(),
+                  SizedBox(height: 24),
+                  _buildInstructions(),
+                  SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      expandedHeight: 300,
+      pinned: true,
+      backgroundColor: Color(0xFF90AF17),
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildRecipeImage(),
+            _buildGradientOverlay(),
+          ],
+        ),
+      ),
+      leading: CircleAvatar(
+        backgroundColor: Colors.white,
+        child: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      actions: [
+        if (_user != null)
           StreamBuilder<DocumentSnapshot>(
             stream: _savedStream,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 _isSaved = snapshot.data!.exists;
               }
-              
-              return IconButton(
-                icon: SvgPicture.asset(
-                  _isSaved
-                      ? "assets/icons/bookmark_fill.svg"
-                      : "assets/icons/bookmark.svg",
-                  height: 24,
-                  color: Colors.white,
+              return CircleAvatar(
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: Icon(
+                    _isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
+                    color: Color(0xFF90AF17),
+                  ),
+                  onPressed: _toggleSaveRecipe,
                 ),
-                onPressed: () => _toggleSaveRecipe(context),
-                tooltip: _isSaved ? "Remove from Saved" : "Save Recipe",
               );
             },
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (imageBytes != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Image.memory(
-                    imageBytes,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 250,
-                  ),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(Icons.image, size: 100, color: Colors.grey[600]),
-                ),
-              SizedBox(height: 20),
-              Text(
-                recipeName,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              SizedBox(height: 8),
-              Card(
-                margin: EdgeInsets.symmetric(vertical: 10),
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Text(
-                    recipeDescription,
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
-                    textAlign: TextAlign.justify,
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Category: $recipeCategory",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.green[700],
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "Ingredients:",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-              SizedBox(height: 10),
-              if (recipeIngredients.isNotEmpty)
-                ...recipeIngredients.map<Widget>((ingredient) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5.0),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check, color: Colors.green[700]),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            ingredient,
-                            style: TextStyle(fontSize: 16, color: Colors.black54),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList()
-              else
-                Text("No ingredients available.",
-                    style: TextStyle(fontSize: 16, color: Colors.black54)),
-              SizedBox(height: 20),
-              Text(
-                "Instructions:",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-              SizedBox(height: 10),
-              Text(
-                recipeInstructions,
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-                textAlign: TextAlign.justify,
-              ),
-              SizedBox(height: 20),
-            ],
+        SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildRecipeHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.recipe['name'] ?? 'Unnamed Recipe',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF202E2E),
           ),
+        ),
+        SizedBox(height: 8),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Color(0xFF90AF17).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            widget.recipe['category'] ?? 'Uncategorized',
+            style: TextStyle(
+              color: Color(0xFF90AF17),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          widget.recipe['description'] ?? 'No description available',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF7286A5),
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIngredientsList() {
+    final ingredients = widget.recipe['ingredients'] as List<dynamic>? ?? [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ingredients',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF202E2E),
+          ),
+        ),
+        SizedBox(height: 16),
+        ...ingredients.map((ingredient) => Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.fiber_manual_record,
+                      size: 8, color: Color(0xFF90AF17)),
+                  SizedBox(width: 8),
+                  Text(
+                    ingredient.toString(),
+                    style: TextStyle(fontSize: 16, color: Color(0xFF7286A5)),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+
+  Widget _buildInstructions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Instructions',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF202E2E),
+          ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          widget.recipe['instructions'] ?? 'No instructions available',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF7286A5),
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecipeImage() {
+    final imageBase64 = widget.recipe['image_base64'];
+    if (imageBase64 != null && imageBase64.isNotEmpty) {
+      try {
+        return Image.memory(
+          base64Decode(imageBase64),
+          fit: BoxFit.cover,
+        );
+      } catch (e) {
+        return _buildPlaceholderImage();
+      }
+    }
+    return _buildPlaceholderImage();
+  }
+
+  Widget _buildPlaceholderImage() {
+    return Container(
+      color: Color(0xFF90AF17).withOpacity(0.1),
+      child: Icon(
+        Icons.restaurant,
+        size: 80,
+        color: Color(0xFF90AF17),
+      ),
+    );
+  }
+
+  Widget _buildGradientOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Colors.black.withOpacity(0.7),
+          ],
+          stops: [0.5, 1.0],
         ),
       ),
     );
   }
+
+  // ... (implementasi widget helper lainnya)
 }
