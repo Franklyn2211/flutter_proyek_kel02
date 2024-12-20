@@ -12,17 +12,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    // _checkLoginStatus();
+    _checkLoginStatus();
   }
 
   /// Periksa status login dan arahkan pengguna
-  // Future<void> _checkLoginStatus() async {
-  //   final isLoggedIn = await AuthPreferences.getLoginStatus();
-  //   if (isLoggedIn) {
-  //     // Jika sudah login, arahkan ke Home
-  //     Navigator.pushReplacementNamed(context, '/');
-  //   }
-  // }
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await AuthPreferences.getLoginStatus();
+    if (isLoggedIn) {
+      // Jika sudah login, arahkan ke Home
+      Navigator.pushReplacementNamed(context, '/');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +94,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               backgroundColor: Color(0xFF90AF17),
                             ),
                             onPressed: () {
-                              Navigator.pushReplacementNamed(context, '/home'); // /home ganti jadi /login
+                              Navigator.pushReplacementNamed(
+                                  context, '/login'); // /home ganti jadi /login
                             },
                             child: const Text(
                               'Get Started',

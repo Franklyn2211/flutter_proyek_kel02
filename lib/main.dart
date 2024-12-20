@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
             theme: theme.isDarkTheme ? ThemeData.dark() : ThemeData.light(),
             routes: {
               '/onboarding': (context) => OnboardingScreen(),
-              // '/login': (context) => LoginPage(),
+              '/login': (context) => LoginPage(),
               '/home': (context) => HomeScreen(),
             },
             home: OnboardingScreen(),
